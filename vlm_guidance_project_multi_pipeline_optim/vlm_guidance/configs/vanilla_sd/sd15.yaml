@@ -1,6 +1,0 @@
-_target_: vlm_guidance.generation.vanilla_sd15.VanillaSD15Pipeline
-model_id: runwayml/stable-diffusion-v1-5
-device: cuda:0
-torch_dtype: float16
-enable_attention_slicing: false
-enable_xformers_memory_efficient_attention: false

@@ -1,6 +1,0 @@
-_target_: vlm_guidance.diffusion.sd15.StableDiffusion15Backend
-model_id: runwayml/stable-diffusion-v1-5
-device: cuda:0
-weights_dtype: float16
-autocast_enabled: false
-autocast_dtype: bfloat16

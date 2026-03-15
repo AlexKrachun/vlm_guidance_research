@@ -3,8 +3,3 @@ a dog under a frog
 a monkey under a frog
 a bird on a turtle
 a bird above a lion
-a bird on a monkey
-a dog on an elephant
-a cat on an elephant
-a dog under a monkey
-a lion under a mouse
