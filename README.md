@@ -6,7 +6,7 @@
 Автор исполнял код на Python 3.10.20, cuda 12.0, 12.8 на A100 80 gb vram. 
 
 
-Установка резпзитоиря и создание и окружения.
+Установка репозитория и создание и окружения.
 
 ```shell
 git clone https://github.com/AlexKrachun/diffusion_course_work
