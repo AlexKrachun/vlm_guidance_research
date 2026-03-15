@@ -29,7 +29,11 @@ hf auth login
 
 Запустить vanilla sd1.5, vqa guided sd1.5, flux1-dev на своем промпте
 ```shell
-python -m vlm_guidance_project_multi_pipeline_optim.vlm_guidance.run run.prompt="a cat on a chair" run.vqa_score=True run.vanilla_sd=True run.flux1=True
+python -m vlm_guidance_project_multi_pipeline_optim.vlm_guidance.run \
+  run.prompt="a cat on a chair" \
+  run.vqa_score=True \
+  run.vanilla_sd=True \
+  run.flux1=True
 ```
 
 
