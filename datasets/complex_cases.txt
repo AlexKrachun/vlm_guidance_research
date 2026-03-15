@@ -1,0 +1,100 @@
+an elephant under a rabbit
+a dog under a frog
+a monkey under a frog
+a bird on a turtle
+a bird above a lion
+a bird on a monkey
+a dog on an elephant
+a cat on an elephant
+a dog under a monkey
+a lion under a mouse
+a bird above an elephant
+a lion under a turtle
+a dog below a bird
+a bird above a rabbit
+an elephant under a turtle
+a cat under a rabbit
+a dog on a bear
+a cat above a bear
+a bird on a horse
+a bear under a monkey
+a cat on a horse
+a frog under a mouse
+a dog on a lion
+an elephant under a frog
+a cat on a lion
+a horse under a rabbit
+a cat below a monkey
+an elephant below a monkey
+a bird above a frog
+a cat above a frog
+a monkey under a turtle
+a cat above a mouse
+an elephant under a mouse
+a monkey on a red car
+a frog below a purple balloon
+a turtle under a yellow bowl
+a rabbit on a gray chair
+a rabbit under a white bench
+a lion below a yellow clock
+an elephant below a green balloon
+a monkey above a green bowl
+a bear below a blue clock
+a bear under a crown
+a mouse under a red bench
+a bear under a gray bench
+a turtle below a blue clock
+a monkey on a blue chair
+a bear below an orange backpack
+a bird on a green chair
+a mouse below a black balloon
+a turtle on a white bench
+a bird above a yellow car
+a monkey under a crown
+a cat above a blue backpack
+a dog on an orange chair
+a monkey on an orange suitcase
+a mouse below a crown
+a horse under a brown bowl
+a monkey below a yellow clock
+a lion on a white bench
+a rabbit under a blue bowl
+a dog above a green suitcase
+a cat under a black chair
+a lion under a pink bowl
+a frog on a black chair
+a frog on a green clock
+a pink crown under a purple bow
+a blue clock under a blue apple
+a blue balloon on an orange bench
+a pink crown under a red chair
+a purple bowl on a black bench
+an orange backpack on a purple car
+a brown suitcase below a black clock
+a gray backpack under a green clock
+a brown balloon above a pink car
+a purple crown on a blue suitcase
+a yellow bow above an orange bench
+a pink bow on a gray apple
+a gray crown below a white clock
+a black car under a white clock
+a brown bowl below a green clock
+a green backpack under a yellow crown
+a purple chair under an orange bowl
+an orange suitcase under a brown bench
+a yellow backpack under a gray apple
+a green bench under a red apple
+a gray suitcase under a brown bow
+a white car under a black bowl
+a purple car under a pink apple
+a gray crown under a purple apple
+a red suitcase under a blue apple
+a red backpack under a yellow bowl
+a black backpack below a pink balloon
+a blue suitcase below a gray balloon
+a white suitcase on a white chair
+a green backpack under a brown suitcase
+a white bow on a black clock
+a red crown under a black bowl
+a yellow suitcase on a yellow car
+a green balloon above a pink bowl

@@ -1,0 +1,9 @@
+_target_: vlm_guidance.guidance.vqa_gradient.VQAGuidanceConfig
+gd_steps: 2
+gd_lr: 0.2
+gd_only_first_k_steps: 10
+normalize_grad: true
+clamp_grad_value: 1.0
+save_only_final_img: true
+final_img_filename: img.png
+save_debug_tensors: false

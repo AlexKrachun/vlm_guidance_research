@@ -1,0 +1,7 @@
+_target_: vlm_guidance.scorers.clip_flant5.CLIPFlanT5DifferentiableScorer
+model_name: clip-flant5-xxl
+device: cuda:0
+autocast_enabled: false
+autocast_dtype: bfloat16
+question_template: 'Does this figure show "{}"? Please answer yes or no.'
+answer_template: 'Yes'

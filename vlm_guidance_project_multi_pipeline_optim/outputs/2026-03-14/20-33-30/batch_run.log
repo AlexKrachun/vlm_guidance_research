@@ -1,0 +1,95 @@
+[2026-03-14 20:33:30,232][__main__][INFO] - Resolved config:
+diffusion:
+  _target_: vlm_guidance.diffusion.sd15.StableDiffusion15Backend
+  model_id: runwayml/stable-diffusion-v1-5
+  device: cuda:0
+  weights_dtype: float16
+  autocast_enabled: false
+  autocast_dtype: bfloat16
+scorer:
+  _target_: vlm_guidance.scorers.clip_flant5.CLIPFlanT5DifferentiableScorer
+  model_name: clip-flant5-xxl
+  device: cuda:0
+  autocast_enabled: false
+  autocast_dtype: bfloat16
+  question_template: Does this figure show "{}"? Please answer yes or no.
+  answer_template: 'Yes'
+algorithm:
+  _target_: vlm_guidance.guidance.vqa_gradient.VQAGuidanceConfig
+  gd_steps: 2
+  gd_lr: 0.5
+  gd_only_first_k_steps: 10
+  normalize_grad: true
+  clamp_grad_value: 1.0
+  save_only_final_img: true
+  final_img_filename: img.png
+  save_debug_tensors: false
+vanilla_sd:
+  _target_: vlm_guidance.generation.vanilla_sd15.VanillaSD15Pipeline
+  model_id: runwayml/stable-diffusion-v1-5
+  device: cuda:0
+  torch_dtype: float16
+  enable_attention_slicing: false
+  enable_xformers_memory_efficient_attention: false
+flux1:
+  _target_: vlm_guidance.generation.flux1_dev.Flux1DevPipeline
+  model_id: black-forest-labs/FLUX.1-dev
+  device: cuda:0
+  torch_dtype: bfloat16
+  enable_model_cpu_offload: true
+  max_sequence_length: 512
+logging:
+  hydra:
+    run:
+      dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    sweep:
+      dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+      subdir: ${hydra.job.num}
+    job:
+      chdir: true
+    job_logging:
+      version: 1
+      formatters:
+        simple:
+          format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+      handlers:
+        console:
+          class: logging.StreamHandler
+          formatter: simple
+          stream: ext://sys.stdout
+        file:
+          class: logging.FileHandler
+          formatter: simple
+          filename: ${hydra.runtime.output_dir}/run.log
+      root:
+        level: INFO
+        handlers:
+        - console
+        - file
+      disable_existing_loggers: false
+run:
+  _target_: vlm_guidance.guidance.vqa_gradient.RunConfig
+  negative_prompt: blurry, low quality
+  height: 512
+  width: 512
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  seed: 42
+  batch_size: 1
+  vqa_score: true
+  vanilla_sd: false
+  flux1: false
+batch:
+  prompts_file: ../datasets/complex_cases.txt
+  output_root_dir: complex_cases_lr05_generations
+  skip_empty_lines: true
+
+[2026-03-14 20:33:30,235][__main__][INFO] - Running batch with pipeline 'vqa_score' over 100 prompts
+[2026-03-14 20:33:30,235][vlm_guidance.execution][INFO] - Instantiating VQA guidance pipeline
+[2026-03-14 20:34:05,247][root][INFO] - gcc -pthread -B /root/miniconda3/envs/t2v/compiler_compat -Wno-unused-result -Wsign-compare -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /root/miniconda3/envs/t2v/include -fPIC -O2 -isystem /root/miniconda3/envs/t2v/include -fPIC -c /tmp/tmpfk7hf3ux/test.c -o /tmp/tmpfk7hf3ux/test.o
+[2026-03-14 20:34:05,259][root][INFO] - gcc -pthread -B /root/miniconda3/envs/t2v/compiler_compat /tmp/tmpfk7hf3ux/test.o -laio -o /tmp/tmpfk7hf3ux/a.out
+[2026-03-14 20:34:05,275][root][INFO] - gcc -pthread -B /root/miniconda3/envs/t2v/compiler_compat -Wno-unused-result -Wsign-compare -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /root/miniconda3/envs/t2v/include -fPIC -O2 -isystem /root/miniconda3/envs/t2v/include -fPIC -c /tmp/tmpjwbgfo5x/test.c -o /tmp/tmpjwbgfo5x/test.o
+[2026-03-14 20:34:05,289][root][INFO] - gcc -pthread -B /root/miniconda3/envs/t2v/compiler_compat /tmp/tmpjwbgfo5x/test.o -L/usr/local/cuda -L/usr/local/cuda/lib64 -lcufile -o /tmp/tmpjwbgfo5x/a.out
+[2026-03-14 20:34:05,324][root][INFO] - gcc -pthread -B /root/miniconda3/envs/t2v/compiler_compat -Wno-unused-result -Wsign-compare -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /root/miniconda3/envs/t2v/include -fPIC -O2 -isystem /root/miniconda3/envs/t2v/include -fPIC -c /tmp/tmpxyk0e24x/test.c -o /tmp/tmpxyk0e24x/test.o
+[2026-03-14 20:34:05,338][root][INFO] - gcc -pthread -B /root/miniconda3/envs/t2v/compiler_compat /tmp/tmpxyk0e24x/test.o -laio -o /tmp/tmpxyk0e24x/a.out
+[2026-03-14 20:58:02,923][__main__][INFO] - Completed 100 prompts across 1 pipelines. Summary saved to /workspace/diffusion_course_work/vlm_guidance_project_multi_pipeline_optim/complex_cases_lr05_generations/run_summary.json

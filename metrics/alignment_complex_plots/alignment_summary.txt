@@ -1,0 +1,4 @@
+Alignment/quality summary:
+- flux1: n=100, alignment_mean=70.800, quality_mean=100.000, gap_mean=-29.200
+- vanilla_sd: n=100, alignment_mean=39.200, quality_mean=87.600, gap_mean=-48.400
+- vqa_score: n=100, alignment_mean=39.200, quality_mean=83.800, gap_mean=-44.600

@@ -1,0 +1,4 @@
+- batch.prompts_file=../datasets/subset.txt
+- run.vqa_score=True
+- run.vanilla_sd=True
+- run.flux1=True

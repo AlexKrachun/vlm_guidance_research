@@ -1,0 +1,6 @@
+- batch.prompts_file=../datasets/complex_cases.txt
+- run.vqa_score=True
+- run.vanilla_sd=False
+- run.flux1=False
+- batch.output_root_dir=complex_cases_lr05_generations
+- algorithm.gd_lr=0.5

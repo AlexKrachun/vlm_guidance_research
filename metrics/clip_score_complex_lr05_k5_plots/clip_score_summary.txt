@@ -1,0 +1,4 @@
+CLIP score summary:
+- flux1: n=100, mean=0.2990, median=0.3016, std=0.0391, min=0.1778, max=0.3896
+- vanilla_sd: n=100, mean=0.2631, median=0.2645, std=0.0392, min=0.1940, max=0.3356
+- vqa_score: n=100, mean=0.2601, median=0.2565, std=0.0453, min=0.1646, max=0.3758
