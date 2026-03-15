@@ -9,7 +9,7 @@
 Установка репозитория и создание и окружения.
 
 ```shell
-git clone https://github.com/AlexKrachun/diffusion_course_work
+git clone https://github.com/AlexKrachun/vlm_guidance_research
 cd diffusion_course_work/
 conda env create -f environment.yaml
 conda activate t2v
