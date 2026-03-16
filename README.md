@@ -8,7 +8,7 @@
 Для запуска vlm guidance пайплайна необходимо 36 gb vram
 
 
-Установка репозитория и создание и окружения.
+## Установка репозитория и создание и окружения.
 
 ```shell
 git clone https://github.com/AlexKrachun/vlm_guidance_research
