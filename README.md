@@ -72,7 +72,7 @@ python3 metrics/clip_visualize.py \
 ### Alignment и Quality scores
 Для подсчета метрик alignment и quality
 ```shell
-export OPENAI_API_KEY="YOUR OPENA API KEY"
+export OPENAI_API_KEY="YOUR OPENAI API KEY"
 ```
 
 ```shell
