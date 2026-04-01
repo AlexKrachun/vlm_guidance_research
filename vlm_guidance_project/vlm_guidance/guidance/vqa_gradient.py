@@ -35,7 +35,6 @@ class VQAGuidanceConfig:
     gd_only_first_k_steps: int = 10
     normalize_grad: bool = True
     clamp_grad_value: Optional[float] = 1.0
-    save_only_final_img: bool = True
     final_img_filename: str = "img.png"
     save_debug_tensors: bool = False
 
@@ -53,13 +52,30 @@ class VQAGradientGuidanceRunner:
         self.run_cfg = run_cfg
         self.guidance_cfg = guidance_cfg
 
+    def _prepare_grad(self, grad: torch.Tensor) -> tuple[torch.Tensor, float, float, bool]:
+        grad_fp32 = grad.detach().float()
+        raw_finite = torch.isfinite(grad_fp32).all()
+        raw_norm = torch.linalg.vector_norm(grad_fp32).detach()
+
+        if self.guidance_cfg.normalize_grad and raw_finite and torch.isfinite(raw_norm) and raw_norm.item() > 0:
+            grad_fp32 = grad_fp32 / raw_norm
+
+        if self.guidance_cfg.clamp_grad_value is not None:
+            grad_fp32 = grad_fp32.clamp(-self.guidance_cfg.clamp_grad_value, self.guidance_cfg.clamp_grad_value)
+
+        processed_finite = torch.isfinite(grad_fp32).all()
+        processed_norm = torch.linalg.vector_norm(grad_fp32).detach()
+        is_valid = bool(raw_finite.item() and processed_finite.item() and torch.isfinite(raw_norm).item() and torch.isfinite(processed_norm).item())
+        return grad_fp32.to(dtype=grad.dtype), float(raw_norm.item()), float(processed_norm.item()), is_valid
+
     def _make_artifact_dirs(self, run_dir: Path) -> Dict[str, Optional[Path]]:
-        if self.guidance_cfg.save_only_final_img:
-            return {"xt": None, "x0": None, "xdiff": None}
+        if not self.guidance_cfg.save_debug_tensors:
+            return {"xt": None, "x0": None, "xdiff": None, "x0diff": None}
         dirs = {
             "xt": run_dir / "xt_gd",
             "x0": run_dir / "x0_gd",
             "xdiff": run_dir / "xdiff_gd",
+            "x0diff": run_dir / "x0diff_gd",
         }
         for d in dirs.values():
             d.mkdir(parents=True, exist_ok=True)
@@ -69,7 +85,6 @@ class VQAGradientGuidanceRunner:
         self,
         run_dir: str | Path = ".",
         prompt_filename: str = "prompt.txt",
-        scores_filename: str = "scores.json",
         summary_filename: str = "result_summary.json",
     ) -> Dict[str, Any]:
         if not self.run_cfg.prompt:
@@ -99,6 +114,7 @@ class VQAGradientGuidanceRunner:
             x_t_gd = x_t_orig.detach().clone().requires_grad_(True)
             do_gd = i < gd_limit and self.guidance_cfg.gd_steps > 0
             gd_records: List[Dict[str, Any]] = []
+            x0_img_before_guidance: Optional[torch.Tensor] = None
 
             if do_gd:
                 for gd_iter in range(self.guidance_cfg.gd_steps):
@@ -111,6 +127,8 @@ class VQAGradientGuidanceRunner:
                     eps_pred = self.diffusion.predict_eps_with_cfg(x_t=x_t_gd, t=t, text_embeds=text_embeds, guidance_scale=self.run_cfg.guidance_scale)
                     x0_pred = self.diffusion.predict_x0_from_eps(x_t=x_t_gd, eps_pred=eps_pred, t=t)
                     x0_img = self.diffusion.decode_latents(x0_pred)
+                    if x0_img_before_guidance is None:
+                        x0_img_before_guidance = x0_img.detach().clone()
 
                     if artifacts["x0"] is not None:
                         save_image_tensor(x0_img, artifacts["x0"] / f"{filename_base}_gd_{gd_iter + 1:02d}_before_gd_step.png")
@@ -125,12 +143,11 @@ class VQAGradientGuidanceRunner:
 
                     with torch.no_grad():
                         xt_before = x_t_gd.detach().clone()
-                        grad_norm_raw = grad.norm().detach().item()
-                        if self.guidance_cfg.normalize_grad:
-                            grad = grad / (grad.norm() + 1e-8)
-                        if self.guidance_cfg.clamp_grad_value is not None:
-                            grad = grad.clamp(-self.guidance_cfg.clamp_grad_value, self.guidance_cfg.clamp_grad_value)
-                        x_t_gd -= self.guidance_cfg.gd_lr * grad
+                        raw_grad = grad.detach().clone()
+                        grad, grad_norm_raw, grad_norm_processed, grad_ok = self._prepare_grad(grad)
+                        if grad_ok:
+                            updated = x_t_gd.detach().float() - self.guidance_cfg.gd_lr * grad.float()
+                            x_t_gd = updated.to(dtype=x_t_gd.dtype)
                         xt_after = x_t_gd.detach().clone()
 
                         if artifacts["xdiff"] is not None:
@@ -149,7 +166,8 @@ class VQAGradientGuidanceRunner:
                                 "x0_img": tensor_stats("x0_img", x0_img),
                                 "loss": tensor_stats("loss", loss),
                                 "score": tensor_stats("score", score),
-                                "grad": tensor_stats("grad", grad),
+                                "grad_raw": tensor_stats("grad_raw", raw_grad),
+                                "grad_processed": tensor_stats("grad_processed", grad),
                             }
                         })
 
@@ -158,8 +176,10 @@ class VQAGradientGuidanceRunner:
                         "denoise_step": i,
                         "gd_iter": gd_iter + 1,
                         "grad_norm_raw": float(grad_norm_raw),
+                        "grad_norm_processed": float(grad_norm_processed),
                         "score_before_update": float(score.detach().item()),
                         "loss_before_update": float(loss.detach().item()),
+                        "grad_update_applied": bool(grad_ok),
                     })
             else:
                 x_t_gd = x_t_orig.detach().clone()
@@ -173,15 +193,23 @@ class VQAGradientGuidanceRunner:
                 x0_img = self.diffusion.decode_latents(x0)
                 if artifacts["x0"] is not None:
                     save_image_tensor(x0_img, artifacts["x0"] / f"{filename_base}_before_denoise.png")
+                if artifacts["x0diff"] is not None and x0_img_before_guidance is not None:
+                    save_diff_image(
+                        x0_img_before_guidance,
+                        x0_img,
+                        artifacts["x0diff"] / f"{filename_base}_cumulative_before_denoise.png",
+                    )
                 eval_output = self.scorer.score(image=x0_img, prompt=self.run_cfg.prompt)
                 vqa_after_gd = float(eval_output.score.reshape(-1)[0].item())
                 latents = self.diffusion.scheduler_step(eps_pred, t, x_t_gd)
+                denoise_step_norm = (latents - x_t_gd).norm().detach().item()
 
             step_records.append({
                 "timestep": int(t.item()),
                 "denoise_step": i,
                 "gd_applied": bool(do_gd),
                 "vqa_score_after_gd": vqa_after_gd,
+                "denoise_step_norm": float(denoise_step_norm),
                 "gd_stats": gd_records if do_gd else [],
             })
 
@@ -201,6 +229,5 @@ class VQAGradientGuidanceRunner:
             "final_score": final_score,
             "steps": step_records,
         }
-        save_json(meta, run_dir / scores_filename)
         save_json(meta, run_dir / summary_filename)
         return meta

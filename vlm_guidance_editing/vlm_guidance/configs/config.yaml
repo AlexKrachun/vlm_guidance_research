@@ -1,0 +1,52 @@
+defaults:
+  - logging: default
+  - _self_
+
+run:
+  dataset_root: datasets/coco/first20
+  output_root_dir: vlm_guidance_editing/first20_results
+  summary_filename: run_summary.json
+  sample_limit: null
+  skip_existing: false
+  fail_fast: false
+  source_prompt_filename: prompt.txt
+  edit_prompt_mode: all   # all | object | background | color | style | texture | material | edit_prompt_txt | none | custom
+  custom_edit_prompt: null
+  pipeline_null_text_inversion: true
+  pipeline_vlm_guided_editing: true
+
+model:
+  model_id: runwayml/stable-diffusion-v1-5
+  device: cuda:0
+  weights_dtype: float16
+
+inversion:
+  image_size: 512
+  num_ddim_steps: 30
+  guidance_scale: 7.5
+  num_null_text_steps: 10
+  null_text_lr: 1e-2
+  early_stop_eps: 1e-5
+
+scorer:
+  _target_: vlm_guidance_project.vlm_guidance.scorers.clip_flant5.CLIPFlanT5DifferentiableScorer
+  model_name: clip-flant5-xxl
+  device: cuda:0
+  autocast_enabled: false
+  autocast_dtype: bfloat16
+  question_template: 'Does this figure show "{}"? Please answer yes or no.'
+
+guided:
+  gd_steps: 1
+  zt_optimizing: true
+  zt_lr: 0.1
+  null_text_emb_optimizing: true
+  null_text_emb_lr: 1e-3
+  normalize_grad: true
+  clamp_grad_value: 1.0
+  final_img_filename: vlm_guided_editing.png
+  summary_filename: vlm_guided_editing_summary.json
+
+algorithm:
+  save_debug_tensors: false
+  gd_only_first_k_steps: 10

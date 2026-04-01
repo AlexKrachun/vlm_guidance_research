@@ -57,8 +57,7 @@ def save_image_tensor(images_bchw: torch.Tensor, path: Union[str, Path]) -> None
 
 
 @torch.no_grad()
-def save_diff_image(img_a: torch.Tensor, img_b: torch.Tensor, path: Union[str, Path], amplify: float = 4.0) -> None:
-    diff = (img_b - img_a).abs()
-    diff = (diff / diff.max().clamp(min=1e-8)) * amplify
-    diff = diff.clamp(0, 1)
+def save_diff_image(img_a: torch.Tensor, img_b: torch.Tensor, path: Union[str, Path], amplify: float = 2) -> None:
+    diff = (img_b - img_a).abs() * amplify
+    diff = diff / diff.max().clamp(min=1e-8, max=1)
     save_image_tensor(diff, path)

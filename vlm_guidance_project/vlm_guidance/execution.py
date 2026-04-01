@@ -96,7 +96,6 @@ def run_single_pipeline(
             return runner.run(
                 run_dir,
                 prompt_filename="vqa_score_prompt.txt",
-                scores_filename="vqa_score_scores.json",
                 summary_filename="vqa_score_result_summary.json",
             )
         return runner.run(run_dir / "vqa_score")
@@ -152,8 +151,9 @@ def execute_selected_pipelines(
 ) -> Dict[str, Dict]:
     run_dir.mkdir(parents=True, exist_ok=True)
     results: Dict[str, Dict] = {}
+    selected_pipelines = get_selected_pipelines(cfg)
 
-    for pipeline_name in get_selected_pipelines(cfg):
+    for pipeline_name in selected_pipelines:
         runner = instantiate_pipeline_runner(cfg, pipeline_name)
         try:
             results[pipeline_name] = run_single_pipeline(
@@ -164,7 +164,8 @@ def execute_selected_pipelines(
                 prompt=prompt,
                 flatten_output=flatten_output,
             )
-            save_prompt_summary(results, run_dir)
+            if len(selected_pipelines) > 1:
+                save_prompt_summary(results, run_dir)
         finally:
             release_runner_resources(runner)
 

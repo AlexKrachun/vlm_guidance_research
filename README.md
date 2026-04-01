@@ -1,18 +1,18 @@
 
-# Репозиторий к исследованию возможностей vlm guidance
+# Репозиторий к исследованию возможностей vlm guidance для диффузионной генерации и редактирования изображений
 
-Доклад о содержании исследования: [pdf](./vlm_guide_result_report.pdf)
+Доклад о содержании исследования: [pdf](./report.pdf)
 
 Автор исполнял код на Python 3.10.20, cuda 12.0, 12.6, 12.8 на A100 80 gb vram. 
 
-Для запуска vlm guidance пайплайна необходимо 36 gb vram
+Для запуска vlm guidance пайплайна необходимо 39 gb vram. Для всех остальных пайплайнов этого тоже хватит
 
 
 ## Установка репозитория и создание и окружения.
 
 ```shell
-git clone https://github.com/AlexKrachun/vlm_guidance_research
-cd vlm_guidance_research/
+git clone git@github.com:AlexKrachun/vlm_guidance_research_dev.git
+cd vlm_guidance_research_dev/
 conda env create -f environment.yaml
 conda activate t2v
 pip install flash-attn --no-build-isolation
@@ -88,6 +88,36 @@ python3 metrics/alignment_score_clalc.py \
 python3 metrics/alignment_visualize.py \
   --input metrics/alignment_score_subset_result.csv \
   --output-dir metrics/alignment_simple_plots
+```
+
+
+
+### Визуализация статистик хода генерации
+
+Сгенерировать граяфик статистики градиентов vlm гайденса
+```shell
+python metrics/statistics.py --input-root vlm_guidance_project/subset_generations
+```
+
+
+
+## Запуск пайплайнов редактирования
+
+запустить null-text editing на датасете datasets/coco/first3
+```shell
+python -m vlm_guidance_editing.vlm_guidance.run \
+  run.dataset_root=datasets/coco/first3 \
+  run.pipeline_null_text_inversion=True \
+  run.pipeline_vlm_guided_editing=True \
+  run.output_root_dir=vlm_guidance_editing/first3_resluts \
+  algorithm.save_debug_tensors=False \
+  algorithm.gd_only_first_k_steps=15 \
+  guided.gd_steps=3 \
+  guided.zt_optimizing=true \
+  guided.zt_lr=1 \
+  guided.null_text_emb_optimizing=true \
+  guided.null_text_emb_lr=1
+
 ```
 
 

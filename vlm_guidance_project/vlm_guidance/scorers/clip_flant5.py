@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import contextlib
 import types
 from dataclasses import dataclass
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -24,7 +23,6 @@ class CLIPFlanT5ScorerConfig:
     autocast_enabled: bool = False
     autocast_dtype: str = "bfloat16"
     question_template: str = 'Does this figure show "{}"? Please answer yes or no.'
-    answer_template: str = "Yes"
 
 
 class CLIPFlanT5DifferentiableScorer(BaseDifferentiableScorer):
@@ -35,12 +33,10 @@ class CLIPFlanT5DifferentiableScorer(BaseDifferentiableScorer):
         autocast_enabled: bool = False,
         autocast_dtype: str = "bfloat16",
         question_template: str = 'Does this figure show "{}"? Please answer yes or no.',
-        answer_template: str = "Yes",
     ) -> None:
         super().__init__(device=device if torch.cuda.is_available() else "cpu")
         self.precision = PrecisionConfig(enabled=autocast_enabled and self.device.type == "cuda", dtype=autocast_dtype)
         self.default_question_template = question_template
-        self.default_answer_template = answer_template
 
         self.CLIPT5Model = clip_t5_model.CLIPT5Model
         self.format_question = clip_t5_model.format_question
@@ -76,6 +72,7 @@ class CLIPFlanT5DifferentiableScorer(BaseDifferentiableScorer):
         else:
             target_h = target_w = 336
         self.target_size = (int(target_h), int(target_w))
+        self._yes_token_id, self._no_token_id, self._answer_token_position = self._prepare_binary_answer_tokens()
 
     def _patch_vision_tower_forward(self) -> None:
         vision_tower = self.model.get_vision_tower()
@@ -97,28 +94,49 @@ class CLIPFlanT5DifferentiableScorer(BaseDifferentiableScorer):
         x = (x - self.image_mean.to(x.device, x.dtype)) / self.image_std.to(x.device, x.dtype)
         return x
 
+    def _tokenize_answers(self, answers: Sequence[str]) -> torch.Tensor:
+        labels = [self.t5_tokenizer_image_token(answer, self.tokenizer, return_tensors="pt") for answer in answers]
+        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=self.IGNORE_INDEX)
+        return labels[:, : self.tokenizer.model_max_length].to(self.device)
+
+    def _prepare_binary_answer_tokens(self) -> Tuple[int, int, int]:
+        yes_answer = self.format_answer("Yes", conversation_style=self.conversational_style)
+        no_answer = self.format_answer("No", conversation_style=self.conversational_style)
+        yes_labels = self._tokenize_answers([yes_answer])[0]
+        no_labels = self._tokenize_answers([no_answer])[0]
+
+        yes_valid = yes_labels.ne(self.IGNORE_INDEX)
+        no_valid = no_labels.ne(self.IGNORE_INDEX)
+        if yes_valid.sum().item() != no_valid.sum().item():
+            raise ValueError("Formatted yes/no answers must have the same tokenized length.")
+
+        differing_positions = torch.nonzero((yes_labels != no_labels) & yes_valid & no_valid, as_tuple=False).flatten()
+        if differing_positions.numel() != 1:
+            raise ValueError("Formatted yes/no answers must differ by exactly one token.")
+
+        answer_token_position = int(differing_positions.item())
+        yes_token_id = int(yes_labels[answer_token_position].item())
+        no_token_id = int(no_labels[answer_token_position].item())
+        return yes_token_id, no_token_id, answer_token_position
+
     def _build_inputs_and_labels(
         self,
         batch_size: int,
         prompt: Union[str, Sequence[str]],
         question_template: str,
-        answer_template: str,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         texts = [prompt] * batch_size if isinstance(prompt, str) else list(prompt)
         if len(texts) != batch_size:
             raise ValueError("Number of prompts must match batch size.")
 
         questions = [self.format_question(question_template.format(text), conversation_style=self.conversational_style) for text in texts]
-        answers = [self.format_answer(answer_template.format(text), conversation_style=self.conversational_style) for text in texts]
+        answers = [self.format_answer("Yes", conversation_style=self.conversational_style) for _ in texts]
 
         input_ids = [self.t5_tokenizer_image_token(q, self.tokenizer, return_tensors="pt") for q in questions]
-        labels = [self.t5_tokenizer_image_token(a, self.tokenizer, return_tensors="pt") for a in answers]
-
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=self.IGNORE_INDEX)
 
         input_ids = input_ids[:, : self.tokenizer.model_max_length].to(self.device)
-        labels = labels[:, : self.tokenizer.model_max_length].to(self.device)
+        labels = self._tokenize_answers(answers)
         attention_mask = input_ids.ne(self.tokenizer.pad_token_id).to(self.device)
         decoder_attention_mask = labels.ne(self.IGNORE_INDEX).to(self.device)
         return input_ids, attention_mask, decoder_attention_mask, labels
@@ -128,18 +146,15 @@ class CLIPFlanT5DifferentiableScorer(BaseDifferentiableScorer):
         image: Union[Image.Image, np.ndarray, torch.Tensor],
         prompt: Union[str, Sequence[str]],
         question_template: str | None = None,
-        answer_template: str | None = None,
         **_: Any,
     ) -> ScoreOutput:
         question_template = question_template or self.default_question_template
-        answer_template = answer_template or self.default_answer_template
 
         images = self.preprocess_image(image)
         input_ids, attention_mask, decoder_attention_mask, labels = self._build_inputs_and_labels(
             batch_size=images.shape[0],
             prompt=prompt,
             question_template=question_template,
-            answer_template=answer_template,
         )
 
         with autocast_context(self.device, self.precision):
@@ -153,15 +168,21 @@ class CLIPFlanT5DifferentiableScorer(BaseDifferentiableScorer):
             )
             logits = outputs.logits
 
-        vocab = logits.shape[-1]
-        per_token_ce = F.cross_entropy(
-            logits.float().reshape(-1, vocab),
-            labels.reshape(-1),
-            ignore_index=self.IGNORE_INDEX,
-            reduction="none",
-        ).view(labels.shape[0], labels.shape[1])
+        token_logits = logits[:, self._answer_token_position, :].float()
+        token_probs = token_logits.softmax(dim=-1)
+        p_yes = token_probs[:, self._yes_token_id]
+        p_no = token_probs[:, self._no_token_id]
+        prob_margin = p_yes - p_no
 
-        valid = labels.ne(self.IGNORE_INDEX)
-        ce = (per_token_ce * valid).sum(dim=1) / valid.sum(dim=1).clamp(min=1)
-        score = torch.exp(-ce)
-        return ScoreOutput(score=score, loss=ce, extras={"valid_tokens": valid.sum(dim=1)})
+        score = torch.sigmoid(prob_margin)
+        loss = -F.logsigmoid(prob_margin)
+        return ScoreOutput(
+            score=score,
+            loss=loss,
+            extras={
+                "p_yes": p_yes,
+                "p_no": p_no,
+                "prob_margin": prob_margin,
+                "answer_token_position": torch.full_like(p_yes, self._answer_token_position, dtype=torch.long),
+            },
+        )

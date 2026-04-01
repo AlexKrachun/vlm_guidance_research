@@ -4,4 +4,3 @@ device: cuda:0
 autocast_enabled: false
 autocast_dtype: bfloat16
 question_template: 'Does this figure show "{}"? Please answer yes or no.'
-answer_template: 'Yes'
