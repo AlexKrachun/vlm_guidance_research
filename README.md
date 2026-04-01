@@ -1,6 +1,12 @@
 
 # Исследование VLM guidance для генерации и редактирования изображений
 
+<p align="center">
+  <img src="assets/t_0000_cumulative_before_denoise.png" width="10%"><img src="assets/t_0003_cumulative_before_denoise.png" width="10%"><img src="assets/t_0006_cumulative_before_denoise.png" width="10%"><img src="assets/t_0009_cumulative_before_denoise.png" width="10%"><img src="assets/t_0012_cumulative_before_denoise.png" width="10%"><img src="assets/t_0015_cumulative_before_denoise.png" width="10%"><img src="assets/t_0018_cumulative_before_denoise.png" width="10%"><img src="assets/t_0021_cumulative_before_denoise.png" width="10%"><img src="assets/t_0024_cumulative_before_denoise.png" width="10%"><img src="assets/t_0027_cumulative_before_denoise.png" width="10%">
+  <br>
+  <img src="assets/t_0000_before_denoise.png" width="10%"><img src="assets/t_0003_before_denoise.png" width="10%"><img src="assets/t_0006_before_denoise.png" width="10%"><img src="assets/t_0009_before_denoise.png" width="10%"><img src="assets/t_0012_before_denoise.png" width="10%"><img src="assets/t_0015_before_denoise.png" width="10%"><img src="assets/t_0018_before_denoise.png" width="10%"><img src="assets/t_0021_before_denoise.png" width="10%"><img src="assets/t_0024_before_denoise.png" width="10%"><img src="assets/t_0027_before_denoise.png" width="10%">
+</p>
+
 Этот репозиторий содержит код и артефакты исследования, посвященного использованию `vision-language models` для управления диффузионной генерацией и редактированием изображений. Основная идея работы состоит в том, чтобы во время денойзинга использовать сигнал от VLM как внешнюю функцию согласованности между текущим изображением и текстовым запросом, и по ее градиенту корректировать латентные переменные диффузионной модели.
 
 Практически в репозитории реализованы два сценария:
@@ -148,5 +154,3 @@ python -m vlm_guidance_editing.vlm_guidance.run \
   guided.null_text_emb_lr=1
 
 ```
-
-
