@@ -48,8 +48,8 @@
 ## Установка репозитория и создание окружения
 
 ```shell
-git clone git@github.com:AlexKrachun/vlm_guidance_research_dev.git
-cd vlm_guidance_research_dev/
+git clone git@github.com:AlexKrachun/vlm_guidance_research.git
+cd vlm_guidance_research/
 conda env create -f environment.yaml
 conda activate t2v
 pip install flash-attn --no-build-isolation
