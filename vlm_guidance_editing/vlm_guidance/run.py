@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import hydra
-from hydra.utils import instantiate
+from hydra.utils import get_original_cwd, instantiate
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
@@ -60,11 +60,25 @@ def get_selected_pipelines(cfg: DictConfig) -> List[str]:
     return selected
 
 
-def _resolve_from_project_root(path_str: str) -> Path:
+def _resolve_path(path_str: str) -> Path:
     path = Path(path_str)
     if path.is_absolute():
         return path
-    return (PROJECT_ROOT / path).resolve()
+
+    # Hydra changes the runtime working directory, so CLI-relative paths should
+    # resolve against the directory from which the job was launched.
+    original_cwd_path = (Path(get_original_cwd()) / path).resolve()
+    if original_cwd_path.exists():
+        return original_cwd_path
+
+    # Backward-compatible fallback for older configs that were implicitly
+    # interpreted relative to the repository root.
+    project_root_path = (PROJECT_ROOT / path).resolve()
+    if project_root_path.exists():
+        return project_root_path
+
+    # Prefer the launch-directory interpretation in the final error message.
+    return original_cwd_path
 
 
 def _find_image(sample_dir: Path) -> Path:
@@ -390,8 +404,8 @@ def _run_vlm_guided_editing_pipeline(
 def main(cfg: DictConfig) -> None:
     log.info("Resolved config:\n%s", OmegaConf.to_yaml(cfg, resolve=False))
 
-    dataset_root = _resolve_from_project_root(cfg.run.dataset_root)
-    output_root_dir = _resolve_from_project_root(cfg.run.output_root_dir)
+    dataset_root = _resolve_path(cfg.run.dataset_root)
+    output_root_dir = _resolve_path(cfg.run.output_root_dir)
     summary_path = output_root_dir / str(cfg.run.summary_filename)
 
     if not dataset_root.exists():

@@ -6,10 +6,12 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import torch
+from torch import nn
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from vlm_guidance_project.vlm_guidance.generation.base import Text2ImageRunner
+from vlm_guidance_project.vlm_guidance.generation.vanilla_sd15 import VanillaSD15WithVLMRunner
 from vlm_guidance_project.vlm_guidance.guidance.vqa_gradient import VQAGradientGuidanceRunner
 from vlm_guidance_project.vlm_guidance.utils.io import save_json
 
@@ -61,6 +63,18 @@ def instantiate_pipeline_runner(cfg: DictConfig, pipeline_name: str):
 
     if pipeline_name == "vanilla_sd":
         log.info("Instantiating vanilla SD1.5 pipeline")
+        if cfg.run.vanilla_calc_vlm_loss:
+            diffusion = instantiate(cfg.diffusion)
+            scorer = instantiate(cfg.scorer)
+            runner = VanillaSD15WithVLMRunner(diffusion=diffusion, scorer=scorer)
+            runner.configure_verbose_vlm(
+                verbose_vlm=cfg.run.verbose_vlm,
+                yes_no_loss=cfg.run.yes_no_loss,
+                vlm_num_tokens=cfg.run.vlm_num_tokens,
+                verbose_vlm_prompt_template=cfg.run.verbose_vlm_prompt_template,
+                vqa_vlm_prompt_template=cfg.run.vqa_vlm_prompt_template,
+            )
+            return runner
         vanilla_pipe = instantiate(cfg.vanilla_sd)
         return Text2ImageRunner(vanilla_pipe)
 
@@ -129,12 +143,59 @@ def save_prompt_summary(results: Dict[str, Dict[str, Any]], run_dir: Path) -> No
     save_json(results, run_dir / "run_summary.json")
 
 
+def _move_to_cpu_if_possible(obj: Any) -> None:
+    if obj is None:
+        return
+    to_method = getattr(obj, "to", None)
+    if callable(to_method):
+        try:
+            to_method("cpu")
+        except Exception:
+            pass
+
+
+def _release_runner_model_refs(runner: Any) -> None:
+    heavy_attr_names = (
+        "pipe",
+        "pipeline",
+        "diffusion",
+        "scorer",
+        "model",
+        "backend",
+        "text_encoder",
+        "vae",
+        "unet",
+    )
+
+    for attr_name in heavy_attr_names:
+        if not hasattr(runner, attr_name):
+            continue
+
+        attr_value = getattr(runner, attr_name)
+        _move_to_cpu_if_possible(attr_value)
+
+        # Release common nested GPU-heavy members used across our runners.
+        for nested_name in ("pipe", "model", "backend", "text_encoder", "vae", "unet"):
+            if hasattr(attr_value, nested_name):
+                nested_value = getattr(attr_value, nested_name)
+                _move_to_cpu_if_possible(nested_value)
+                setattr(attr_value, nested_name, None)
+
+        if isinstance(attr_value, nn.Module) or attr_name in {"pipe", "pipeline", "diffusion", "scorer", "backend"}:
+            setattr(runner, attr_name, None)
+
+
 def release_runner_resources(runner) -> None:
     try:
+        _release_runner_model_refs(runner)
         del runner
     finally:
         gc.collect()
         if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
             torch.cuda.empty_cache()
             if hasattr(torch.cuda, "ipc_collect"):
                 try:

@@ -1,6 +1,6 @@
 _target_: vlm_guidance_project.vlm_guidance.guidance.vqa_gradient.VQAGuidanceConfig
 gd_steps: 2
-gd_lr: 0.2
+gd_lr: 0.5
 gd_only_first_k_steps: 10
 normalize_grad: true
 clamp_grad_value: 1.0

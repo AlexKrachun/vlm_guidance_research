@@ -1,0 +1,14 @@
+pipeline_key,experiment,pipeline,n,alignment_mean,alignment_std,quality_mean,quality_std
+clip-gd-10iter-lr0.2/vqa_score,clip-gd-10iter-lr0.2,vqa_score,50,3.32,1.096190062471479,3.84,0.3703280399090204
+clip-gd-1iter-lr1/vqa_score,clip-gd-1iter-lr1,vqa_score,50,3.42,1.1621584422521565,3.96,0.4020356365562938
+clip-gd-2iter-lr1/vqa_score,clip-gd-2iter-lr1,vqa_score,50,3.48,1.0349011586442765,3.92,0.2740475156178697
+qwen2.5-gd-10iter-lr0.2-noise-info/vqa_score,qwen2.5-gd-10iter-lr0.2-noise-info,vqa_score,50,3.56,1.090964748116387,3.9,0.30304576336566325
+qwen2.5-gd-10iter-lr0.2-yes-loss/vqa_score,qwen2.5-gd-10iter-lr0.2-yes-loss,vqa_score,50,3.36,1.0451052090383925,3.88,0.328260722659316
+qwen2.5-gd-10iter-lr0.2/vqa_score,qwen2.5-gd-10iter-lr0.2,vqa_score,50,3.56,0.9722685444099172,3.96,0.34758643030275527
+qwen2.5-gd-1iter-lr1-noise-info/vqa_score,qwen2.5-gd-1iter-lr1-noise-info,vqa_score,50,3.34,1.0993504575754853,3.88,0.38544964466377274
+qwen2.5-gd-1iter-lr1-yes-loss/vqa_score,qwen2.5-gd-1iter-lr1-yes-loss,vqa_score,50,3.44,1.0133798771981826,3.88,0.328260722659316
+qwen2.5-gd-1iter-lr1/vqa_score,qwen2.5-gd-1iter-lr1,vqa_score,50,3.58,1.1082252773268269,3.88,0.38544964466377274
+qwen2.5-gd-2iter-lr1-noise-info/vqa_score,qwen2.5-gd-2iter-lr1-noise-info,vqa_score,50,3.62,1.0669429914193052,3.88,0.32826072265931605
+qwen2.5-gd-2iter-lr1-yes-loss/vqa_score,qwen2.5-gd-2iter-lr1-yes-loss,vqa_score,50,3.26,1.103056976714055,3.88,0.3854496446637728
+qwen2.5-gd-2iter-lr1/vqa_score,qwen2.5-gd-2iter-lr1,vqa_score,50,3.36,1.1204955172072897,3.98,0.2466096643090295
+vanilla/vanilla_sd,vanilla,vanilla_sd,50,3.32,1.1506874608915585,3.9,0.3642156795423418

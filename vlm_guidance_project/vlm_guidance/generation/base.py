@@ -9,6 +9,7 @@ import torch
 from PIL import Image
 
 from vlm_guidance_project.vlm_guidance.utils.io import save_json
+from vlm_guidance_project.vlm_guidance.utils.tensorboard import log_scalars_to_tensorboard
 
 
 @dataclass
@@ -93,4 +94,9 @@ class Text2ImageRunner:
             "image_paths": image_paths,
         }
         save_json(result, run_dir / summary_filename)
+        log_scalars_to_tensorboard(
+            summary=result,
+            log_dir=run_dir / "tensorboard",
+            tag_prefix=self.pipeline.pipeline_name,
+        )
         return result

@@ -9,6 +9,7 @@ import numpy as np
 
 DEFAULT_INPUT_ROOT = Path("vlm_guidance_project/subset_generations")
 DEFAULT_OUTPUT = Path("metrics/grad_norm_raw_trajectories.png")
+DEFAULT_SPLIT_PERCENTILE = 0.2
 
 
 Series = tuple[list[float], list[float]]
@@ -42,6 +43,12 @@ def _parse_args() -> argparse.Namespace:
         type=float,
         default=8.0,
         help="Figure height in inches.",
+    )
+    parser.add_argument(
+        "--split-percentile",
+        type=float,
+        default=DEFAULT_SPLIT_PERCENTILE,
+        help="Fraction of runs to include in the best/worst final VLM loss split plot, for example 0.2 for 20%%.",
     )
     return parser.parse_args()
 
@@ -108,6 +115,22 @@ def _extract_loss_series(summary: dict) -> Series:
         raise ValueError("No loss_before_update values found in result summary")
 
     return x_values, y_values
+
+
+def _extract_final_loss(summary: dict) -> float:
+    final_loss: float | None = None
+
+    for step in summary.get("steps", []):
+        for gd_stat in step.get("gd_stats", []):
+            loss_before_update = gd_stat.get("loss_before_update")
+            if loss_before_update is None:
+                continue
+            final_loss = float(loss_before_update)
+
+    if final_loss is None:
+        raise ValueError("No loss_before_update values found in result summary")
+
+    return final_loss
 
 
 def _extract_denoise_step_norm_series(summary: dict) -> Series:
@@ -299,6 +322,121 @@ def _plot_series(
     plt.close(fig)
 
 
+def _split_grad_norm_series_by_final_loss(
+    input_root: Path,
+    split_percentile: float = DEFAULT_SPLIT_PERCENTILE,
+) -> tuple[dict[str, Series], dict[str, Series]]:
+    if not 0 < split_percentile < 0.5:
+        raise ValueError("split_percentile must be between 0 and 0.5")
+
+    collected: list[tuple[str, Series, float]] = []
+    for result_path in _result_paths(input_root):
+        summary = _load_json(result_path)
+        label = _label_from_result_path(result_path, input_root)
+        grad_series = _extract_grad_norm_series(summary)
+        final_loss = _extract_final_loss(summary)
+        collected.append((label, grad_series, final_loss))
+
+    if not collected:
+        raise ValueError("No grad_norm_raw trajectories available for split plot")
+
+    split_count = max(1, int(np.ceil(len(collected) * split_percentile)))
+    collected.sort(key=lambda item: item[2])
+
+    lower_group = {
+        label: series
+        for label, series, _ in collected[:split_count]
+    }
+    upper_group = {
+        label: series
+        for label, series, _ in collected[-split_count:]
+    }
+    return lower_group, upper_group
+
+
+def _split_output_path_for_metric(base_output: Path) -> Path:
+    return base_output.with_name(f"grad_norm_raw_split_by_final_loss{base_output.suffix}")
+
+
+def _plot_split_series(
+    lower_series: dict[str, Series],
+    upper_series: dict[str, Series],
+    output_path: Path,
+    figure_width: float,
+    figure_height: float,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    lower_label: str,
+    upper_label: str,
+    log_scale: bool = False,
+    vertical_lines: np.ndarray | None = None,
+    x_tick_positions: np.ndarray | None = None,
+    x_tick_labels: list[str] | None = None,
+) -> None:
+    plt.rcParams.update(
+        {
+            "figure.facecolor": "#f7f3eb",
+            "axes.facecolor": "#fffaf2",
+            "axes.labelcolor": "#283618",
+            "xtick.color": "#283618",
+            "ytick.color": "#283618",
+            "font.size": 11,
+        }
+    )
+
+    fig, ax = plt.subplots(figsize=(figure_width, figure_height), facecolor="#f7f3eb")
+
+    if vertical_lines is not None:
+        for x_value in vertical_lines:
+            ax.axvline(x_value, color="#606c38", linewidth=0.8, alpha=0.12, zorder=0)
+
+    group_configs = [
+        (lower_series, "#2a9d8f", lower_label),
+        (upper_series, "#d62828", upper_label),
+    ]
+
+    for series, color, mean_label in group_configs:
+        for x_values, y_values in series.values():
+            ax.plot(
+                x_values,
+                y_values,
+                marker="o",
+                markersize=3.0,
+                linewidth=1.4,
+                alpha=0.18,
+                color=color,
+            )
+
+        mean_x, mean_y = _mean_series_by_x(series)
+        ax.plot(
+            mean_x,
+            mean_y,
+            linewidth=3.0,
+            alpha=0.95,
+            color=color,
+            label=mean_label,
+            zorder=5,
+        )
+
+    if x_tick_positions is not None and x_tick_labels is not None:
+        ax.set_xticks(x_tick_positions)
+        ax.set_xticklabels(x_tick_labels, rotation=0)
+
+    ax.set_title(title, fontsize=18, fontweight="bold", color="#283618")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if log_scale:
+        ax.set_yscale("log")
+    ax.legend(frameon=False, fontsize=10, loc="center left", bbox_to_anchor=(1.02, 0.5))
+    _style_axes(ax)
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=240, bbox_inches="tight")
+    plt.close(fig)
+
+
 def _output_path_for_metric(base_output: Path, metric_name: str) -> Path:
     if metric_name == "grad_norm_raw":
         return base_output
@@ -309,6 +447,8 @@ def main() -> None:
     args = _parse_args()
     if args.figure_width <= 0 or args.figure_height <= 0:
         raise ValueError("Figure size must be positive")
+    if not 0 < args.split_percentile < 0.5:
+        raise ValueError("--split-percentile must be between 0 and 0.5")
 
     result_paths = _result_paths(args.input_root)
     guidance_block_starts = _collect_guidance_block_starts(args.input_root)
@@ -376,6 +516,35 @@ def main() -> None:
             print(f"- {label}: {len(y_values)} values")
         print(f"Saved plot to {output_path}")
 
+    lower_split_series, upper_split_series = _split_grad_norm_series_by_final_loss(
+        args.input_root,
+        split_percentile=args.split_percentile,
+    )
+    split_percent = int(args.split_percentile * 100)
+    split_output_path = _split_output_path_for_metric(args.output)
+    _plot_split_series(
+        lower_series=lower_split_series,
+        upper_series=upper_split_series,
+        output_path=split_output_path,
+        figure_width=args.figure_width,
+        figure_height=args.figure_height,
+        title="grad_norm_raw Split by Final VLM Loss",
+        xlabel="denoise_step",
+        ylabel="grad_norm_raw",
+        lower_label=f"mean grad_norm_raw, {split_percent}% best final VLM losses",
+        upper_label=f"mean grad_norm_raw, {split_percent}% worst final VLM losses",
+        log_scale=True,
+        vertical_lines=guidance_block_starts,
+        x_tick_positions=guidance_tick_positions,
+        x_tick_labels=guidance_tick_labels,
+    )
+    print(
+        "Plotted grad_norm_raw split by final VLM loss: "
+        f"{len(lower_split_series)} best-loss runs vs {len(upper_split_series)} worst-loss runs"
+    )
+    print(f"Saved plot to {split_output_path}")
+
 
 if __name__ == "__main__":
     main()
+# python metrics/statistics.py --split-percentile 0.2

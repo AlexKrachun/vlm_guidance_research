@@ -49,4 +49,4 @@ guided:
 
 algorithm:
   save_debug_tensors: false
-  gd_only_first_k_steps: 10
+  gd_only_first_k_steps: 15

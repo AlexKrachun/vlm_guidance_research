@@ -18,7 +18,13 @@ run:
   batch_size: 1
   vqa_score: true
   vanilla_sd: false
+  vanilla_calc_vlm_loss: false
   flux1: false
+  verbose_vlm: false
+  yes_no_loss: true
+  vlm_num_tokens: 50
+  verbose_vlm_prompt_template: 'Describe whether this image matches the prompt  "{}". Explain briefly what matches and what does not.'
+  vqa_vlm_prompt_template: 'Does this figure show "{}"? Please answer yes or no'
 
 batch:
   prompts_file: ../datasets/subset.txt
