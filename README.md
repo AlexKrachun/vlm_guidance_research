@@ -280,7 +280,7 @@ python -m vlm_guidance_editing.vlm_guidance.run \
 | `algorithm.gd_only_first_k_steps` | `10` | Guidance применяется только на первых `k` denoising шагах. |
 | `algorithm.normalize_grad` | `true` | Нормировать градиент перед обновлением latent. |
 | `algorithm.clamp_grad_value` | `1.0` | Ограничить значения градиента перед обновлением latent. |
-| `algorithm.save_debug_tensors` | `false` | Сохраняет промежуточные `xt`, `x0` и diff-картинки для отладки. |
+| `algorithm.save_debug_tensors` | `false` | Сохраняет промежуточные `xt`, `x0` и diff-картинки для отладки. |  -->
 
 ---
-По вопросам обращайтесь ко мне в телеграм: [@Alex_Karachun](http://t.me/Alex_Karachun) -->
+По вопросам обращайтесь ко мне в телеграм: [@Alex_Karachun](http://t.me/Alex_Karachun)
