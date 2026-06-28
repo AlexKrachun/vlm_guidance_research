@@ -26,7 +26,7 @@
 
 Полный разбор постановки задачи, метода и результатов находится в [report.pdf](./report.pdf).
 
-Ход развития исследования и все подробности можно наблюдать в отчетах об итерациях работы над проектом: [report-1](vlm_guide_result_1_report.pdf), [report-2](vlm_guide_result_2_report.pdf), [report-3](vlm_guide_result_3_report.pdf).
+Ход развития исследования и все подробности можно наблюдать в отчетах об итерациях работы над проектом: [report-1](vlm_guide_result_1_report.pdf), [report-2](vlm_guide_result_2_report.pdf), [report-3](vlm_guide_result_3_report.pdf), [report-4](vlm_guide_result_4_report.pdf).
 
 ## Что есть в репозитории
 
@@ -35,7 +35,7 @@
 - `datasets/` - текстовые наборы промптов и примеры входных данных для редактирования.
 - `metrics/` - скрипты для подсчета `CLIP score`, `alignment`, `quality` и визуализации результатов.
 - `report.pdf` - полный текст исследовательской работы.
-- [report-1](vlm_guide_result_1_report.pdf), [report-2](vlm_guide_result_2_report.pdf), [report-3](vlm_guide_result_3_report.pdf) - подробные отчеты об итерациях работы над проектом.
+- [report-1](vlm_guide_result_1_report.pdf), [report-2](vlm_guide_result_2_report.pdf), [report-3](vlm_guide_result_3_report.pdf), [report-4](vlm_guide_result_4_report.pdf) - подробные отчеты об итерациях работы над проектом.
 
 ## Что запускать для ознакомления
 
